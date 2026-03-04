@@ -70,6 +70,95 @@ describe('teamCommand shutdown --force parsing', () => {
 });
 
 describe('teamCommand api', () => {
+  it('prints team-specific help for omx team --help', async () => {
+    const logs: string[] = [];
+    const originalLog = console.log;
+    try {
+      console.log = (...args: unknown[]) => logs.push(args.map(String).join(' '));
+      await teamCommand(['--help']);
+      assert.equal(logs.length, 1);
+      assert.match(logs[0] ?? '', /Usage: omx team \[ralph\] \[N:agent-type\]/);
+      assert.match(logs[0] ?? '', /omx team api <operation>/);
+    } finally {
+      console.log = originalLog;
+    }
+  });
+
+  it('prints team-specific help for omx team help alias', async () => {
+    const logs: string[] = [];
+    const originalLog = console.log;
+    try {
+      console.log = (...args: unknown[]) => logs.push(args.map(String).join(' '));
+      await teamCommand(['help']);
+      assert.equal(logs.length, 1);
+      assert.match(logs[0] ?? '', /Usage: omx team \[ralph\] \[N:agent-type\]/);
+      assert.match(logs[0] ?? '', /omx team api <operation>/);
+    } finally {
+      console.log = originalLog;
+    }
+  });
+
+  it('prints team-api-specific help for omx team api --help', async () => {
+    const logs: string[] = [];
+    const originalLog = console.log;
+    try {
+      console.log = (...args: unknown[]) => logs.push(args.map(String).join(' '));
+      await teamCommand(['api', '--help']);
+      assert.equal(logs.length, 1);
+      assert.match(logs[0] ?? '', /Usage: omx team api <operation>/);
+      assert.match(logs[0] ?? '', /send-message/);
+      assert.match(logs[0] ?? '', /transition-task-status/);
+    } finally {
+      console.log = originalLog;
+    }
+  });
+
+  it('prints team-api-specific help for omx team api help alias', async () => {
+    const logs: string[] = [];
+    const originalLog = console.log;
+    try {
+      console.log = (...args: unknown[]) => logs.push(args.map(String).join(' '));
+      await teamCommand(['api', 'help']);
+      assert.equal(logs.length, 1);
+      assert.match(logs[0] ?? '', /Usage: omx team api <operation>/);
+      assert.match(logs[0] ?? '', /send-message/);
+      assert.match(logs[0] ?? '', /transition-task-status/);
+    } finally {
+      console.log = originalLog;
+    }
+  });
+
+  it('prints operation-specific help for omx team api <operation> --help', async () => {
+    const logs: string[] = [];
+    const originalLog = console.log;
+    try {
+      console.log = (...args: unknown[]) => logs.push(args.map(String).join(' '));
+      await teamCommand(['api', 'send-message', '--help']);
+      assert.equal(logs.length, 1);
+      assert.match(logs[0] ?? '', /Usage: omx team api send-message --input <json> \[--json\]/);
+      assert.match(logs[0] ?? '', /Required input fields/);
+      assert.match(logs[0] ?? '', /from_worker/);
+      assert.match(logs[0] ?? '', /to_worker/);
+      assert.match(logs[0] ?? '', /body/);
+    } finally {
+      console.log = originalLog;
+    }
+  });
+
+  it('prints operation-specific help for omx team api <operation> help alias', async () => {
+    const logs: string[] = [];
+    const originalLog = console.log;
+    try {
+      console.log = (...args: unknown[]) => logs.push(args.map(String).join(' '));
+      await teamCommand(['api', 'claim-task', 'help']);
+      assert.equal(logs.length, 1);
+      assert.match(logs[0] ?? '', /Usage: omx team api claim-task --input <json> \[--json\]/);
+      assert.match(logs[0] ?? '', /expected_version/);
+    } finally {
+      console.log = originalLog;
+    }
+  });
+
   it('executes CLI interop operation with stable JSON envelope', async () => {
     const wd = await mkdtemp(join(tmpdir(), 'omx-team-api-'));
     const previousCwd = process.cwd();

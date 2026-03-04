@@ -86,6 +86,20 @@ export {
 export { notify, loadNotificationConfig } from "./notifier.js";
 export type { NotificationConfig, NotificationPayload } from "./notifier.js";
 
+// Dispatch cooldown exports
+export {
+  getDispatchNotificationCooldownSeconds,
+  shouldSendDispatchNotification,
+  recordDispatchNotificationSent,
+} from "./dispatch-cooldown.js";
+
+// Idle cooldown exports (for backward compatibility)
+export {
+  getIdleNotificationCooldownSeconds,
+  shouldSendIdleNotification,
+  recordIdleNotificationSent,
+} from "./idle-cooldown.js";
+
 // Template engine exports
 export {
   interpolateTemplate,

@@ -24,6 +24,7 @@ describe('worker bootstrap', () => {
     assert.match(workerSkill, /omx team api claim-task/);
     assert.match(workerSkill, /omx team api transition-task-status/);
     assert.match(workerSkill, /omx team api release-task-claim/);
+    assert.match(workerSkill, /\$\{CODEX_HOME:-~\/\.codex\}\/skills\/worker\/SKILL\.md/);
     assert.doesNotMatch(workerSkill, /Write completion to the task file/i);
     assert.doesNotMatch(workerSkill, /`?\{"status":"completed","result":"\.\.\."\}`?/);
     assert.doesNotMatch(workerSkill, /`?\{"status":"failed","error":"\.\.\."\}`?/);
@@ -39,6 +40,8 @@ describe('worker bootstrap', () => {
   it('generateWorkerOverlay includes the team name', () => {
     const overlay = generateWorkerOverlay('my-team');
     assert.match(overlay, /team "my-team"/);
+    assert.match(overlay, /\$\{CODEX_HOME:-~\/\.codex\}\/skills\/worker\/SKILL\.md/);
+    assert.match(overlay, /~\/\.agents\/skills\/worker\/SKILL\.md/);
     assert.match(overlay, /Resolve canonical team state root/i);
     assert.match(overlay, /<team_state_root>\/team\/my-team\/tasks/);
     assert.match(overlay, /tasks\/task-<id>\.json/);
@@ -201,6 +204,11 @@ describe('worker bootstrap', () => {
     assert.match(inbox, /omx team api claim-task/);
     assert.match(inbox, /omx team api transition-task-status/);
     assert.match(inbox, /omx team api release-task-claim/);
+    assert.match(inbox, /\$\{CODEX_HOME:-~\/\.codex\}\/skills\/worker\/SKILL\.md/);
+    assert.match(inbox, /~\/\.agents\/skills\/worker\/SKILL\.md/);
+    assert.match(inbox, /ACK: worker-1 initialized/);
+    assert.match(inbox, /Mailbox Delivery Protocol \(Required\)/);
+    assert.match(inbox, /mailbox-mark-delivered/);
     assert.doesNotMatch(inbox, /Write `\{"status": "completed", "result": "brief summary"\}` to the task file/);
     assert.match(inbox, /Verification Requirements/);
     assert.match(inbox, /Fix-Verify Loop/);

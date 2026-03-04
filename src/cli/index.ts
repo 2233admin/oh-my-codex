@@ -369,7 +369,7 @@ export async function main(args: string[]): Promise<void> {
     team: flags.has('--team'),
   };
 
-  if (flags.has('--help') && !ralphHelpRequested) {
+  if (flags.has('--help') && !ralphHelpRequested && command !== 'team') {
     console.log(HELP);
     return;
   }

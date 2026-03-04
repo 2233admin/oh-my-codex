@@ -40,7 +40,11 @@ You are a team worker in team "${teamName}". Your identity and assigned tasks ar
 
 ## Protocol
 1. Read your inbox file at the path provided in your first instruction
-2. Load the worker skill instructions from skills/worker/SKILL.md in this repository and follow them
+2. Load the worker skill instructions from the first path that exists:
+   - \`${'${CODEX_HOME:-~/.codex}'}/skills/worker/SKILL.md\`
+   - \`~/.agents/skills/worker/SKILL.md\`
+   - \`<leader_cwd>/.agents/skills/worker/SKILL.md\`
+   - \`<leader_cwd>/skills/worker/SKILL.md\` (repo fallback)
 3. Send an ACK to the lead using CLI interop \`omx team api send-message --json\` (to_worker="leader-fixed") once initialized
 4. Resolve canonical team state root in this order:
    - OMX_TEAM_STATE_ROOT env
@@ -66,10 +70,18 @@ When calling \`omx team api send-message\`, you MUST always include:
 - from_worker: "<your-worker-name>" (your identity — check your inbox file for your worker name, never omit this)
 - to_worker: "leader-fixed" (to message the leader) or "worker-N" (for peers)
 
+## Startup Handshake (Required)
+Before doing any task work, send exactly one startup ACK to the leader.
+Keep the body short and deterministic so all worker CLIs (Codex/Claude) behave consistently.
+
 Example:
-omx team api send-message --input "{\"team_name\":\"${teamName}\",\"from_worker\":\"<your-worker-name>\",\"to_worker\":\"leader-fixed\",\"body\":\"Task completed\"}" --json
+omx team api send-message --input "{\"team_name\":\"${teamName}\",\"from_worker\":\"<your-worker-name>\",\"to_worker\":\"leader-fixed\",\"body\":\"ACK: <your-worker-name> initialized\"}" --json
 
 CRITICAL: Never omit from_worker. The MCP server cannot auto-detect your identity.
+
+When your mailbox receives a message, process delivery explicitly:
+1. Read: \`omx team api mailbox-list --input "{\"team_name\":\"${teamName}\",\"worker\":\"<your-worker-name>\"}" --json\`
+2. Mark delivered: \`omx team api mailbox-mark-delivered --input "{\"team_name\":\"${teamName}\",\"worker\":\"<your-worker-name>\",\"message_id\":\"<MESSAGE_ID>\"}" --json\`
 
 ## Rules
 - Do NOT edit files outside the paths listed in your task description
@@ -288,8 +300,15 @@ ${taskList}
 
 ## Instructions
 
-1. Load and follow \`skills/worker/SKILL.md\`
-2. Send startup ACK to the lead mailbox using CLI interop \`omx team api send-message --json\` with \`to_worker="leader-fixed"\`
+1. Load and follow the worker skill from the first existing path:
+   - \`${'${CODEX_HOME:-~/.codex}'}/skills/worker/SKILL.md\`
+   - \`~/.agents/skills/worker/SKILL.md\`
+   - \`${leaderCwd}/.agents/skills/worker/SKILL.md\`
+   - \`${leaderCwd}/skills/worker/SKILL.md\` (repo fallback)
+2. Send startup ACK to the lead mailbox BEFORE any task work (run this exact command):
+
+   \`omx team api send-message --input "{\"team_name\":\"${teamName}\",\"from_worker\":\"${workerName}\",\"to_worker\":\"leader-fixed\",\"body\":\"ACK: ${workerName} initialized\"}" --json\`
+
 3. Start with the first non-blocked task
 4. Resolve canonical team state root in this order: \`OMX_TEAM_STATE_ROOT\` env -> worker identity \`team_state_root\` -> config/manifest \`team_state_root\` -> local cwd fallback.
 5. Read the task file for your selected task id at \`${teamStateRoot}/team/${teamName}/tasks/task-<id>.json\` (example: \`task-1.json\`)
@@ -302,6 +321,16 @@ ${taskList}
 11. Write \`{"state": "idle", "updated_at": "<current ISO timestamp>"}\` to \`${teamStateRoot}/team/${teamName}/workers/${workerName}/status.json\`
 12. Wait for the next instruction from the lead
 13. For legacy team_* MCP tools (hard-deprecated), use \`omx team api\`; do not pass \`workingDirectory\` unless the lead explicitly asks (if resolution fails, use leader cwd: \`${leaderCwd}\`)
+
+## Mailbox Delivery Protocol (Required)
+When you are notified about mailbox messages, always follow this exact flow:
+
+1. List mailbox:
+   \`omx team api mailbox-list --input "{\"team_name\":\"${teamName}\",\"worker\":\"${workerName}\"}" --json\`
+2. For each undelivered message, mark delivery:
+   \`omx team api mailbox-mark-delivered --input "{\"team_name\":\"${teamName}\",\"worker\":\"${workerName}\",\"message_id\":\"<MESSAGE_ID>\"}" --json\`
+
+Use terse ACK bodies (single line) for consistent parsing across Codex and Claude workers.
 
 ## Message Protocol
 When using \`omx team api send-message\`, ALWAYS include from_worker with YOUR worker name:

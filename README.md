@@ -134,13 +134,15 @@ omx doctor         # Installation/runtime diagnostics
 omx doctor --team  # Team/swarm diagnostics
 omx ask ...        # Ask local provider advisor (claude|gemini), writes .omx/artifacts/*
 omx team ...       # Start/status/resume/shutdown team workers (interactive tmux by default)
+omx ralph          # Launch Codex with ralph persistence mode active
 omx status         # Show active modes
 omx cancel         # Cancel active execution modes
 omx reasoning <mode> # low|medium|high|xhigh
 omx tmux-hook ...  # init|status|validate|test
 omx hooks ...      # init|status|validate|test (plugin extension workflow)
 omx hud ...        # --watch|--json|--preset
-omx help
+omx version        # Show version information
+omx help           # Show help message
 ```
 
 Ask command examples:
@@ -175,13 +177,18 @@ See `docs/hooks-extension.md` for the full extension workflow and event model.
 ## Launch Flags
 
 ```bash
---yolo
---high
---xhigh
---madmax
---force
---dry-run
---verbose
+--yolo              # Launch Codex in yolo mode
+--high              # High reasoning effort (shorthand for -c model_reasoning_effort="high")
+--xhigh             # xhigh reasoning effort (shorthand for -c model_reasoning_effort="xhigh")
+--madmax            # DANGEROUS: bypass Codex approvals and sandbox
+--spark             # Use Codex spark model for team workers only (~1.3x faster)
+--madmax-spark      # spark model for workers + bypass approvals for leader and workers
+-w, --worktree[=<name>]  # Launch Codex in a git worktree (detached when no name given)
+--force             # Force reinstall (overwrite existing files)
+--dry-run           # Show what would be done without doing it
+--keep-config       # Skip config.toml cleanup during uninstall
+--purge             # Remove .omx/ cache directory during uninstall
+--verbose           # Show detailed output
 --scope <user|project>  # setup only
 ```
 
@@ -231,6 +238,8 @@ Operational commands:
 
 ```bash
 omx team <args>
+omx team --help
+omx team api --help
 omx team status <team-name>
 omx team resume <team-name>
 omx team shutdown <team-name>

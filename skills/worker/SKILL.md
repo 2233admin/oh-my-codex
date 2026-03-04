@@ -15,14 +15,23 @@ You MUST be running with `OMX_TEAM_WORKER` set. It looks like:
 
 Example: `alpha/worker-2`
 
+## Load Worker Skill Path (Claude/Codex)
+
+When a worker inbox tells you to load this skill, resolve the first existing path:
+
+1. `${CODEX_HOME:-~/.codex}/skills/worker/SKILL.md`
+2. `~/.agents/skills/worker/SKILL.md`
+3. `<leader_cwd>/.agents/skills/worker/SKILL.md`
+4. `<leader_cwd>/skills/worker/SKILL.md` (repo fallback)
+
 ## Startup Protocol (ACK)
 
 1. Parse `OMX_TEAM_WORKER` into:
    - `teamName` (before the `/`)
    - `workerName` (after the `/`, usually `worker-<n>`)
-2. Send an ACK to the lead mailbox:
+2. Send a startup ACK to the lead mailbox **before task work**:
    - Recipient worker id: `leader-fixed`
-   - Body: one short line including your workerName and what you’re ready to do.
+   - Body: one short deterministic line (recommended: `ACK: <workerName> initialized`).
 3. After ACK, proceed to your inbox instructions.
 
 The lead will see your message in:
@@ -31,6 +40,12 @@ The lead will see your message in:
 
 Use CLI interop:
 - `omx team api send-message --input <json> --json` with `{team_name, from_worker, to_worker:"leader-fixed", body}`
+
+Copy/paste template:
+
+```bash
+omx team api send-message --input "{\"team_name\":\"<teamName>\",\"from_worker\":\"<workerName>\",\"to_worker\":\"leader-fixed\",\"body\":\"ACK: <workerName> initialized\"}" --json
+```
 
 ## Inbox + Tasks
 
@@ -70,6 +85,13 @@ Hooks/watchers may nudge you after mailbox/inbox state is already written.
 Use CLI interop:
 - `omx team api mailbox-list --json` to read
 - `omx team api mailbox-mark-delivered --json` to acknowledge delivery
+
+Copy/paste templates:
+
+```bash
+omx team api mailbox-list --input "{\"team_name\":\"<teamName>\",\"worker\":\"<workerName>\"}" --json
+omx team api mailbox-mark-delivered --input "{\"team_name\":\"<teamName>\",\"worker\":\"<workerName>\",\"message_id\":\"<MESSAGE_ID>\"}" --json
+```
 
 ## Dispatch Discipline (state-first)
 
