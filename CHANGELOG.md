@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-03-06
+
+Generated from `v0.8.1..dev` (non-merge commits) and release validation on `dev`.
+
+### Added
+- Gemini CLI worker support for OMX team mode, including mixed CLI maps and `--model` passthrough (`#576`, `#579`, related issue `#573`).
+- Default frontier-model fallback is now centralized through `DEFAULT_FRONTIER_MODEL` (currently `gpt-5.4`) instead of hardcoded references (`#583`).
+
+### Changed
+- Bumped package version to `0.8.2`.
+- Setup/install now follows the catalog manifest more strictly and `--force` cleans stale shipped skill directories (`#575`, `#580`, closes `#574`).
+- Expanded OpenClaw integration docs and localized navigation links (`#571`).
+
+### Fixed
+- Prevented unresolved placeholder leakage in OpenClaw hook instruction templates (`#581`, closes `#578`).
+- Hardened explicit multi-skill ordering and blocked implicit keyword auto-activation for direct `/prompts:<name>` invocations (`#582`).
+
+### Docs
+- Improved release-note readability for the prior release and refreshed OpenClaw guidance/localized docs.
+
 ## [0.8.1] - 2026-03-05
 
 Generated from `4141fd6..HEAD` (non-merge commits) and release validation on `dev`.
