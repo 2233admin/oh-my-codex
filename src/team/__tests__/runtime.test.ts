@@ -1223,6 +1223,52 @@ process.on('SIGTERM', () => {
     }
   });
 
+  it('monitorTeam propagates linked terminal state into Ralph without waiting for notify-hook', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'omx-runtime-linked-ralph-monitor-'));
+    try {
+      await initTeamState('team-linked-ralph-monitor', 'linked runtime sync test', 'executor', 1, cwd);
+      await createTask(
+        'team-linked-ralph-monitor',
+        {
+          subject: 'code change',
+          description: 'implement feature',
+          status: 'completed',
+          owner: 'worker-1',
+          requires_code_change: false,
+        },
+        cwd,
+      );
+
+      await writeFile(join(cwd, '.omx', 'state', 'team-state.json'), JSON.stringify({
+        active: true,
+        current_phase: 'team-exec',
+        linked_ralph: true,
+        team_name: 'team-linked-ralph-monitor',
+      }, null, 2));
+      await writeFile(join(cwd, '.omx', 'state', 'ralph-state.json'), JSON.stringify({
+        active: true,
+        iteration: 1,
+        max_iterations: 10,
+        current_phase: 'executing',
+        started_at: '2026-03-11T00:00:00.000Z',
+        linked_team: true,
+      }, null, 2));
+
+      const snapshot = await monitorTeam('team-linked-ralph-monitor', cwd);
+      assert.ok(snapshot);
+      assert.equal(snapshot?.phase, 'complete');
+
+      const ralphState = JSON.parse(await readFile(join(cwd, '.omx', 'state', 'ralph-state.json'), 'utf-8')) as Record<string, unknown>;
+      assert.equal(ralphState.active, false);
+      assert.equal(ralphState.current_phase, 'complete');
+      assert.equal(ralphState.linked_team_terminal_phase, 'complete');
+      assert.ok(typeof ralphState.linked_team_terminal_at === 'string' && ralphState.linked_team_terminal_at);
+      assert.ok(typeof ralphState.completed_at === 'string' && ralphState.completed_at);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('monitorTeam emits worker_state_changed, worker_idle, and task_completed events based on transitions', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'omx-runtime-'));
     try {
@@ -1802,6 +1848,44 @@ esac
       await shutdownTeam('team-ralph-summary', cwd, { ralph: true });
       const teamRoot = join(cwd, '.omx', 'state', 'team', 'team-ralph-summary');
       assert.equal(existsSync(teamRoot), false);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('shutdownTeam ralph=true propagates linked Ralph cancellation before cleanup', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'omx-runtime-linked-ralph-shutdown-'));
+    try {
+      await initTeamState('team-linked-ralph-shutdown', 'linked shutdown sync test', 'executor', 1, cwd);
+      await createTask(
+        'team-linked-ralph-shutdown',
+        { subject: 'done', description: 'd', status: 'completed' },
+        cwd,
+      );
+
+      await writeFile(join(cwd, '.omx', 'state', 'team-state.json'), JSON.stringify({
+        active: true,
+        current_phase: 'team-exec',
+        linked_ralph: true,
+        team_name: 'team-linked-ralph-shutdown',
+      }, null, 2));
+      await writeFile(join(cwd, '.omx', 'state', 'ralph-state.json'), JSON.stringify({
+        active: true,
+        iteration: 1,
+        max_iterations: 10,
+        current_phase: 'executing',
+        started_at: '2026-03-11T00:00:00.000Z',
+        linked_team: true,
+      }, null, 2));
+
+      await shutdownTeam('team-linked-ralph-shutdown', cwd, { ralph: true });
+
+      const ralphState = JSON.parse(await readFile(join(cwd, '.omx', 'state', 'ralph-state.json'), 'utf-8')) as Record<string, unknown>;
+      assert.equal(ralphState.active, false);
+      assert.equal(ralphState.current_phase, 'cancelled');
+      assert.equal(ralphState.linked_team_terminal_phase, 'cancelled');
+      assert.ok(typeof ralphState.linked_team_terminal_at === 'string' && ralphState.linked_team_terminal_at);
+      assert.ok(typeof ralphState.completed_at === 'string' && ralphState.completed_at);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }

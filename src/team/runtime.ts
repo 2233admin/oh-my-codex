@@ -182,6 +182,50 @@ async function syncRootTeamModeStateOnTerminalPhase(
   }
 }
 
+async function syncLinkedRalphModeStateOnTerminalPhase(
+  teamName: string,
+  phase: TeamPhase | TerminalPhase,
+  cwd: string,
+  nowIso: string = new Date().toISOString(),
+): Promise<void> {
+  if (phase !== 'complete' && phase !== 'failed' && phase !== 'cancelled') return;
+
+  try {
+    const [teamState, ralphState] = await Promise.all([
+      readModeState('team', cwd),
+      readModeState('ralph', cwd),
+    ]);
+    if (!teamState || !ralphState) return;
+
+    const stateTeamName = typeof teamState.team_name === 'string' ? teamState.team_name.trim() : '';
+    if (stateTeamName && stateTeamName !== teamName) return;
+    if (teamState.linked_ralph !== true || ralphState.linked_team !== true) return;
+
+    const terminalAt = typeof teamState.completed_at === 'string' && teamState.completed_at
+      ? teamState.completed_at
+      : nowIso;
+    const alreadySynced = ralphState.active === false
+      && ralphState.current_phase === phase
+      && ralphState.linked_team_terminal_phase === phase
+      && ralphState.linked_team_terminal_at === terminalAt
+      && ralphState.completed_at === terminalAt;
+    if (alreadySynced) return;
+
+    await updateModeState('ralph', {
+      active: false,
+      current_phase: phase,
+      linked_mode: 'team',
+      linked_team: true,
+      linked_team_terminal_phase: phase,
+      linked_team_terminal_at: terminalAt,
+      completed_at: terminalAt,
+      last_turn_at: nowIso,
+    }, cwd);
+  } catch {
+    // Best-effort compatibility sync only.
+  }
+}
+
 /** Runtime handle returned by startTeam */
 export interface TeamRuntime {
   teamName: string;
@@ -1251,6 +1295,7 @@ export async function monitorTeam(teamName: string, cwd: string): Promise<TeamSn
   await writeTeamPhaseState(sanitized, phaseState, cwd);
   const phase: TeamPhase | TerminalPhase = phaseState.current_phase;
   await syncRootTeamModeStateOnTerminalPhase(sanitized, phase, cwd);
+  await syncLinkedRalphModeStateOnTerminalPhase(sanitized, phase, cwd);
 
   for (const taskId of reclaimedTaskIds) {
     recommendations.push(`Reclaimed expired claim for task-${taskId}`);
@@ -1678,6 +1723,7 @@ export async function shutdownTeam(teamName: string, cwd: string, options: Shutd
       },
       cwd,
     ).catch(() => {});
+    await syncLinkedRalphModeStateOnTerminalPhase(sanitized, 'cancelled', cwd);
   }
 
   const cleanupErrors: string[] = [];
