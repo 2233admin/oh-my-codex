@@ -1197,14 +1197,35 @@ describe('executeTeamApiOperation: get-summary', () => {
 // ─── cleanup ──────────────────────────────────────────────────────────────
 
 describe('executeTeamApiOperation: cleanup', () => {
-  it('cleans up team state', async () => {
+  it('routes normal cleanup through shutdownTeam', async () => {
     const { cwd, cleanup } = await setupTeam('cleanup-team');
     try {
       const result = await executeTeamApiOperation('cleanup', {
         team_name: 'cleanup-team',
       }, cwd);
       assert.equal(result.ok, true);
-      if (result.ok) assert.equal(result.data.team_name, 'cleanup-team');
+      if (result.ok) {
+        assert.equal(result.data.team_name, 'cleanup-team');
+        assert.equal(result.data.cleanup_mode, 'shutdown');
+      }
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('does not bypass shutdown gate for pending work', async () => {
+    const { cwd, cleanup } = await setupTeam('cleanup-gated');
+    try {
+      await createTask('cleanup-gated', {
+        subject: 'pending task',
+        description: 'should block normal cleanup',
+        status: 'pending',
+      }, cwd);
+      const result = await executeTeamApiOperation('cleanup', {
+        team_name: 'cleanup-gated',
+      }, cwd);
+      assert.equal(result.ok, false);
+      if (!result.ok) assert.match(result.error.message, /shutdown_gate_blocked/);
     } finally {
       await cleanup();
     }
@@ -1212,6 +1233,25 @@ describe('executeTeamApiOperation: cleanup', () => {
 
   it('returns error when team_name missing', async () => {
     const result = await executeTeamApiOperation('cleanup', {}, '/tmp');
+    assert.equal(result.ok, false);
+  });
+});
+
+describe('executeTeamApiOperation: orphan-cleanup', () => {
+  it('uses destructive orphan cleanup explicitly', async () => {
+    const { cwd } = await setupTeam('cleanup-orphan');
+    const result = await executeTeamApiOperation('orphan-cleanup', {
+      team_name: 'cleanup-orphan',
+    }, cwd);
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.data.team_name, 'cleanup-orphan');
+      assert.equal(result.data.cleanup_mode, 'orphan_cleanup');
+    }
+  });
+
+  it('returns error when team_name missing', async () => {
+    const result = await executeTeamApiOperation('orphan-cleanup', {}, '/tmp');
     assert.equal(result.ok, false);
   });
 });
