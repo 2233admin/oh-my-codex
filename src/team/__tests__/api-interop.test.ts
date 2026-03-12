@@ -56,7 +56,7 @@ describe('resolveTeamApiOperation', () => {
     assert.equal(resolveTeamApiOperation('  SEND_MESSAGE  '), 'send-message');
   });
 
-  it('resolves all 32 operations from the operation list', () => {
+  it('resolves all 33 operations from the operation list', () => {
     for (const op of TEAM_API_OPERATIONS) {
       assert.equal(resolveTeamApiOperation(op), op);
     }
@@ -86,8 +86,8 @@ describe('buildLegacyTeamDeprecationHint', () => {
 // ─── constants ────────────────────────────────────────────────────────────
 
 describe('LEGACY_TEAM_MCP_TOOLS', () => {
-  it('contains 28 legacy tool names', () => {
-    assert.equal(LEGACY_TEAM_MCP_TOOLS.length, 28);
+  it('contains 29 legacy tool names', () => {
+    assert.equal(LEGACY_TEAM_MCP_TOOLS.length, 29);
   });
 
   it('all start with team_', () => {
@@ -98,8 +98,8 @@ describe('LEGACY_TEAM_MCP_TOOLS', () => {
 });
 
 describe('TEAM_API_OPERATIONS', () => {
-  it('contains 32 operations', () => {
-    assert.equal(TEAM_API_OPERATIONS.length, 32);
+  it('contains 33 operations', () => {
+    assert.equal(TEAM_API_OPERATIONS.length, 33);
   });
 
   it('all use kebab-case', () => {
