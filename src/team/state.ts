@@ -2,6 +2,7 @@ import { appendFile, readFile, writeFile, mkdir, rm, rename, readdir } from 'fs/
 import { join, dirname, resolve, sep } from 'path';
 import { existsSync } from 'fs';
 import { randomUUID } from 'crypto';
+import { A2ASyncer } from './state/a2a-sync.js';
 import { omxStateDir } from '../utils/paths.js';
 import { type TeamPhase, type TerminalPhase } from './orchestrator.js';
 import {
@@ -1130,7 +1131,9 @@ export async function writeWorkerInbox(
   cwd: string
 ): Promise<void> {
   const p = join(workerDir(teamName, workerName, cwd), 'inbox.md');
-  await writeAtomic(p, prompt);
+  const globalFacts = await A2ASyncer.recallFacts(teamName);
+  const enhancedPrompt = globalFacts ? `${globalFacts}\n${prompt}` : prompt;
+  await writeAtomic(p, enhancedPrompt);
 }
 
 function taskFilePath(teamName: string, taskId: string, cwd: string): string {
@@ -1286,7 +1289,7 @@ export async function transitionTaskStatus(
   claimToken: string,
   cwd: string
 ): Promise<TransitionTaskResult> {
-  return await transitionTaskStatusImpl(taskId, from, to, claimToken, {
+  const result = await transitionTaskStatusImpl(taskId, from, to, claimToken, {
     teamName,
     cwd,
     readTask,
@@ -1301,6 +1304,10 @@ export async function transitionTaskStatus(
     readMonitorSnapshot,
     writeMonitorSnapshot,
   });
+  if (result.ok) {
+    A2ASyncer.sync('task_transition', { taskId, from, to, teamName });
+  }
+  return result;
 }
 
 export async function releaseTaskClaim(
@@ -1500,7 +1507,7 @@ export async function sendDirectMessage(
   body: string,
   cwd: string
 ): Promise<TeamMailboxMessage> {
-  return await sendDirectMessageImpl(fromWorker, toWorker, body, {
+  const msg = await sendDirectMessageImpl(fromWorker, toWorker, body, {
     teamName,
     cwd,
     withMailboxLock,
@@ -1509,6 +1516,8 @@ export async function sendDirectMessage(
     appendTeamEvent,
     readTeamConfig,
   });
+  A2ASyncer.sync('message', msg, teamName);
+  return msg;
 }
 
 export async function broadcastMessage(
